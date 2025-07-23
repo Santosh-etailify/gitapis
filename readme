@@ -1,0 +1,1 @@
+Has the entire code to create a repo if not exists and push content, check file by file if there are changes and commit only them, but gives an error when creating an repo because no intial commit, should add that
