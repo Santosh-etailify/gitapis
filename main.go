@@ -24,7 +24,7 @@ func upsertMultipleFilesSafe(
 	ref, _, err := client.Git.GetRef(ctx, owner, repo, "refs/heads/"+branch)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok && (ghErr.Response.StatusCode == 404 || ghErr.Response.StatusCode == 409) {
-			log.Println("🟡 Branch doesn't exist — repo may be empty. Creating initial commit...")
+			log.Println("Branch doesn't exist — repo may be empty. Creating initial commit...")
 
 			var treeEntries []*github.TreeEntry
 			for path, content := range files {
@@ -71,7 +71,7 @@ func upsertMultipleFilesSafe(
 				return result, fmt.Errorf("CreateRef (init): %w", err)
 			}
 
-			log.Println("✅ Initial commit and branch created.")
+			log.Println("Initial commit and branch created.")
 			return result, nil
 		}
 		return result, fmt.Errorf("GetRef: %w", err)
@@ -90,7 +90,7 @@ func upsertMultipleFilesSafe(
 	}
 
 	if baseCommit == nil || baseCommit.Commit == nil {
-		return result, fmt.Errorf("❌ baseCommit or baseCommit.Commit is nil — SHA might be invalid or repo in bad state")
+		return result, fmt.Errorf("baseCommit or baseCommit.Commit is nil — SHA might be invalid or repo in bad state")
 	}
 
 	baseTreeSHA := baseCommit.Commit.Tree.GetSHA()
@@ -134,7 +134,7 @@ func upsertMultipleFilesSafe(
 	}
 
 	if len(treeEntries) == 0 {
-		fmt.Println("✅ No changes to commit.")
+		fmt.Println("No changes to commit.")
 		return result, nil
 	}
 
@@ -143,7 +143,7 @@ func upsertMultipleFilesSafe(
 		return result, fmt.Errorf("Recheck GetRef: %w", err)
 	}
 	if refCheck.Object.GetSHA() != originalHeadSHA {
-		return result, fmt.Errorf("❌ Branch was updated during operation (SHA mismatch)")
+		return result, fmt.Errorf("Branch was updated during operation (SHA mismatch)")
 	}
 
 	newTree, _, err := client.Git.CreateTree(ctx, owner, repo, baseTreeSHA, treeEntries)
@@ -175,7 +175,7 @@ func upsertMultipleFilesSafe(
 		return result, fmt.Errorf("UpdateRef: %w", err)
 	}
 
-	fmt.Println("✅ Commit created:", commit.GetHTMLURL())
+	fmt.Println("Commit created:", commit.GetHTMLURL())
 	return result, nil
 }
 
@@ -185,11 +185,11 @@ func createRepo(client *github.Client, owner, repoName string) error {
 	// Check if the repository already exists
 	_, resp, err := client.Repositories.Get(ctx, owner, repoName)
 	if err == nil {
-		log.Println("✅ Repo already exists:", fmt.Sprintf("https://github.com/%s/%s", owner, repoName))
+		log.Println("Repo already exists:", fmt.Sprintf("https://github.com/%s/%s", owner, repoName))
 		return nil
 	}
 	if resp != nil && resp.StatusCode != 404 {
-		return fmt.Errorf("❌ Error checking if repo exists: %w", err)
+		return fmt.Errorf("Error checking if repo exists: %w", err)
 	}
 
 	// Repo doesn't exist, so create it
@@ -200,25 +200,23 @@ func createRepo(client *github.Client, owner, repoName string) error {
 
 	createdRepo, _, err := client.Repositories.Create(ctx, "", repo)
 	if err != nil {
-		return fmt.Errorf("❌ Error creating repo: %w", err)
+		return fmt.Errorf("Error creating repo: %w", err)
 	}
 
-	log.Println("✅ Repo created:", createdRepo.GetHTMLURL())
+	log.Println("Repo created:", createdRepo.GetHTMLURL())
 	return nil
 }
 
-// --- Main Function ---
-
 func main() {
-	// === Configuration ===
+
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
-		log.Fatal("❌ GITHUB_TOKEN is not set in the environment")
+		log.Fatal("GITHUB_TOKEN is not set in the environment")
 	}
 
-	owner := "Santosh-etailify" // ← change this
-	repo := "gitapis"           // ← change this
-	branch := "main"            // ← change if needed
+	owner := "Santosh-etailify" // change this
+	repo := "gitapis"           // change this
+	branch := "main"            // change if needed
 	commitMessage := "Upsert files from Go script"
 
 	localFiles := []string{
@@ -230,7 +228,7 @@ func main() {
 	for _, localPath := range localFiles {
 		content, err := os.ReadFile(localPath)
 		if err != nil {
-			log.Fatalf("❌ Failed to read %s: %v", localPath, err)
+			log.Fatalf("Failed to read %s: %v", localPath, err)
 		}
 
 		// Use forward slashes even on Windows for GitHub paths
@@ -248,12 +246,12 @@ func main() {
 	// === Run Upsert ===
 	err := createRepo(client, owner, repo)
 	if err != nil {
-		log.Fatalf("❌ Failed to create repo: %v", err)
+		log.Fatalf("Failed to create repo: %v", err)
 	}
 
 	result, err := upsertMultipleFilesSafe(client, owner, repo, branch, files, commitMessage)
 	if err != nil {
-		log.Fatalf("❌ Failed to upsert files: %v", err)
+		log.Fatalf("Failed to upsert files: %v", err)
 	}
 
 	// === Print Summary ===
