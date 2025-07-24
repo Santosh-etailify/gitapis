@@ -92,7 +92,7 @@ func upsertMultipleFilesSafe(
 	if baseCommit == nil || baseCommit.Commit == nil {
 		return result, fmt.Errorf("❌ baseCommit or baseCommit.Commit is nil — SHA might be invalid or repo in bad state")
 	}
-	fmt.Printf("🔍 Debug Commit: %+v\n", baseCommit)
+
 	baseTreeSHA := baseCommit.Commit.Tree.GetSHA()
 
 	var treeEntries []*github.TreeEntry
