@@ -255,7 +255,7 @@ func main() {
 	}
 
 	// === Print Summary ===
-	fmt.Println("📝 File Update Summary:")
+	fmt.Println("File Update Summary:")
 	for file, status := range result {
 		fmt.Printf("  %s → %s\n", file, status)
 	}
