@@ -24,55 +24,7 @@ func upsertMultipleFilesSafe(
 	ref, _, err := client.Git.GetRef(ctx, owner, repo, "refs/heads/"+branch)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok && (ghErr.Response.StatusCode == 404 || ghErr.Response.StatusCode == 409) {
-			log.Println("Branch doesn't exist — repo may be empty. Creating initial commit...")
-
-			var treeEntries []*github.TreeEntry
-			for path, content := range files {
-				result[path] = "created"
-				blob, _, err := client.Git.CreateBlob(ctx, owner, repo, &github.Blob{
-					Content:  github.String(content),
-					Encoding: github.String("utf-8"),
-				})
-				if err != nil {
-					result[path] = "error"
-					return result, fmt.Errorf("CreateBlob (init): %w", err)
-				}
-				treeEntries = append(treeEntries, &github.TreeEntry{
-					Path: github.String(path),
-					Mode: github.String("100644"),
-					Type: github.String("blob"),
-					SHA:  blob.SHA,
-				})
-			}
-
-			tree, _, err := client.Git.CreateTree(ctx, owner, repo, "", treeEntries)
-			if err != nil {
-				return result, fmt.Errorf("CreateTree (init): %w", err)
-			}
-
-			commit := &github.Commit{
-				Message: github.String("Initial commit"),
-				Tree:    tree,
-			}
-
-			newCommit, _, err := client.Git.CreateCommit(ctx, owner, repo, commit)
-			if err != nil {
-				return result, fmt.Errorf("CreateCommit (init): %w", err)
-			}
-
-			ref := &github.Reference{
-				Ref: github.String("refs/heads/" + branch),
-				Object: &github.GitObject{
-					SHA: newCommit.SHA,
-				},
-			}
-			_, _, err = client.Git.CreateRef(ctx, owner, repo, ref)
-			if err != nil {
-				return result, fmt.Errorf("CreateRef (init): %w", err)
-			}
-
-			log.Println("Initial commit and branch created.")
-			return result, nil
+			log.Println("Branch doesn't exist — repo may be empty.")
 		}
 		return result, fmt.Errorf("GetRef: %w", err)
 	}
@@ -194,8 +146,13 @@ func createRepo(client *github.Client, owner, repoName string) error {
 
 	// Repo doesn't exist, so create it
 	repo := &github.Repository{
-		Name:    github.String(repoName),
-		Private: github.Bool(false),
+		Name:        github.String(repoName),
+		Private:     github.Bool(false),
+		AutoInit:    github.Bool(true),                            // This initializes repo with a README
+		Description: github.String("Auto-created with Go script"), // Message of the readme file of the repo
+		License: &github.License{
+			Key: github.String("mit"), // Change to desired license key
+		},
 	}
 
 	createdRepo, _, err := client.Repositories.Create(ctx, "", repo)
@@ -217,7 +174,8 @@ func main() {
 	owner := "Santosh-etailify" // change this
 	repo := "gitapis"           // change this
 	branch := "main"            // change if needed
-	commitMessage := "Upsert files from Go script"
+	commitMessage := "AutoInitialized main branch with a default readme file"
+	// change if needed
 
 	localFiles := []string{
 		"main.go",
@@ -237,13 +195,13 @@ func main() {
 		files[localPath] = string(content)
 	}
 
-	// === GitHub Client ===
+	//GitHub Client
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	// === Run Upsert ===
+	//Run required functions
 	err := createRepo(client, owner, repo)
 	if err != nil {
 		log.Fatalf("Failed to create repo: %v", err)
@@ -253,8 +211,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to upsert files: %v", err)
 	}
-
-	// === Print Summary ===
+	//Print Summary
 	fmt.Println("File Update Summary:")
 	for file, status := range result {
 		fmt.Printf("  %s → %s\n", file, status)
