@@ -163,6 +163,17 @@ func createRepo(client *github.Client, owner, repoName string) error {
 	log.Println("Repo created:", createdRepo.GetHTMLURL())
 	return nil
 }
+func deleteRepo(client *github.Client, owner, repoName string) error {
+	ctx := context.Background()
+
+	_, err := client.Repositories.Delete(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("failed to delete repo %s/%s: %w", owner, repoName, err)
+	}
+
+	fmt.Printf("✅ Deleted repo: https://github.com/%s/%s\n", owner, repoName)
+	return nil
+}
 
 func main() {
 
